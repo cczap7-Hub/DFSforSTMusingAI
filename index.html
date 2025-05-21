@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Orbital Plane Visualization</title>
+  <script src="https://unpkg.com/cesium@latest/Build/Cesium/Cesium.js"></script>
+  <link href="https://unpkg.com/cesium@latest/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+
+  <script type="module">
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxMDEwNWM5NS1iZjM3LTRmNTAtOGRkZi1hODhhZjZkY2U3NTYiLCJpZCI6Mjk3NTUzLCJpYXQiOjE3NDYwNTI5MTV9.qyR5tMw8Et9vEWJXd9XdKD1BjUNWLlxPPWOxvDe9xQ8'; // Replace with your real token
+
+    async function initCesium() {
+      const viewer = new Cesium.Viewer('cesiumContainer', {
+        terrainProvider: await Cesium.createWorldTerrainAsync(),
+        shouldAnimate: true
+      });
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(-95.0, 40.0, 20000000)
+      });
+
+      try {
+        const response = await fetch('predictions.json?nocache=' + new Date().getTime());
+        const satellites = await response.json();
+        console.log("Loaded satellites:", satellites.length);
+
+        satellites.forEach(sat => {
+          console.log("Rendering satellite:", sat.id);
+          console.log("Actual:", sat.actual);
+          console.log("Predicted:", sat.predicted);
+
+          // Plot actual
+          if (
+            sat.actual &&
+            typeof sat.actual.x === 'number' &&
+            typeof sat.actual.y === 'number' &&
+            typeof sat.actual.z === 'number'
+          ) {
+            viewer.entities.add({
+              name: sat.id + " Actual",
+              position: Cesium.Cartesian3.fromElements(sat.actual.x, sat.actual.y, sat.actual.z),
+              point: { pixelSize: 10, color: Cesium.Color.GREEN },
+              label: {
+                text: sat.id + " Actual",
+                font: '12px sans-serif',
+                fillColor: Cesium.Color.WHITE,
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                pixelOffset: new Cesium.Cartesian2(0, -15)
+              }
+            });
+          } else {
+            console.warn("Skipping malformed actual data:", sat);
+          }
+
+          // Plot predicted
+          if (
+            sat.predicted &&
+            typeof sat.predicted.x === 'number' &&
+            typeof sat.predicted.y === 'number' &&
+            typeof sat.predicted.z === 'number'
+          ) {
+            viewer.entities.add({  
+              name: sat.id + " Predicted",
+              position: Cesium.Cartesian3.fromElements(sat.predicted.x, sat.predicted.y, sat.predicted.z),
+              point: { pixelSize: 10, color: Cesium.Color.YELLOW },
+              label: {
+                text: sat.id + " Predicted",
+                font: '12px sans-serif',
+                fillColor: Cesium.Color.YELLOW,
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                pixelOffset: new Cesium.Cartesian2(0, -15)
+              }
+            });
+          } else {
+            console.warn("Skipping malformed predicted data:", sat);
+          }
+        });
+
+      } catch (error) {
+        console.error("Failed to load orbital data:", error);
+      }
+    }
+
+    initCesium();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
