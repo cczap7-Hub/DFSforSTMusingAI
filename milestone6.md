@@ -37,7 +37,6 @@ The final milestone steps include:
   - ![Screenshot 2025-05-28 233402](https://github.com/user-attachments/assets/643106e0-d839-4351-ba63-9e4487acfcea)
   - ![Screenshot 2025-06-01 140106](https://github.com/user-attachments/assets/994dbff8-4306-4e42-9973-5a7081d1f2f9)
   - ![Screenshot 2025-06-01 140102](https://github.com/user-attachments/assets/bbd821bb-de8b-4b0f-b1e1-b4f97f439692)
-  - ![Screenshot 2025-06-01 171331](https://github.com/user-attachments/assets/19335f2f-1b77-4cbc-be28-9eeb1c5204e4)
 
 - Screencast and HLDD rubric were submitted for grading on my course's assignment pages.
 
