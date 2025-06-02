@@ -37,54 +37,78 @@
         console.log("Loaded satellites:", satellites.length);
 
         satellites.forEach(sat => {
-          console.log("Rendering satellite:", sat.id);
-          console.log("Actual:", sat.actual);
-          console.log("Predicted:", sat.predicted);
+          // Render orbit line
+          if (Array.isArray(sat.orbit)) {
+            const orbitPositions = sat.orbit.map(p =>
+              Cesium.Cartesian3.fromElements(p.x, p.y, p.z)
+            );
 
-          // Plot actual
-          if (
-            sat.actual &&
-            typeof sat.actual.x === 'number' &&
-            typeof sat.actual.y === 'number' &&
-            typeof sat.actual.z === 'number'
-          ) {
             viewer.entities.add({
-              name: sat.id + " Actual",
-              position: Cesium.Cartesian3.fromElements(sat.actual.x, sat.actual.y, sat.actual.z),
-              point: { pixelSize: 10, color: Cesium.Color.GREEN },
-              label: {
-                text: sat.id + " Actual",
-                font: '12px sans-serif',
-                fillColor: Cesium.Color.WHITE,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                pixelOffset: new Cesium.Cartesian2(0, -15)
+              name: sat.id + " Orbit",
+              polyline: {
+                positions: orbitPositions,
+                width: 2,
+                material: Cesium.Color.YELLOW.withAlpha(0.6),
               }
             });
-          } else {
-            console.warn("Skipping malformed actual data:", sat);
           }
 
-          // Plot predicted
+          // Render prediction point
           if (
             sat.predicted &&
             typeof sat.predicted.x === 'number' &&
             typeof sat.predicted.y === 'number' &&
             typeof sat.predicted.z === 'number'
           ) {
-            viewer.entities.add({  
+            viewer.entities.add({
               name: sat.id + " Predicted",
-              position: Cesium.Cartesian3.fromElements(sat.predicted.x, sat.predicted.y, sat.predicted.z),
-              point: { pixelSize: 10, color: Cesium.Color.YELLOW },
+              position: Cesium.Cartesian3.fromElements(
+                sat.predicted.x,
+                sat.predicted.y,
+                sat.predicted.z
+              ),
+              point: {
+                pixelSize: 10,
+                color: Cesium.Color.RED
+              },
               label: {
-                text: sat.id + " Predicted",
+                text: sat.id,
                 font: '12px sans-serif',
-                fillColor: Cesium.Color.YELLOW,
+                fillColor: Cesium.Color.WHITE,
                 verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
                 pixelOffset: new Cesium.Cartesian2(0, -15)
               }
             });
-          } else {
-            console.warn("Skipping malformed predicted data:", sat);
+          }
+
+          // Render benchmark (real) point
+          if (
+            Array.isArray(sat.orbit) &&
+            sat.orbit.length > 0 &&
+            typeof sat.orbit[sat.orbit.length - 1].x === 'number' &&
+            typeof sat.orbit[sat.orbit.length - 1].y === 'number' &&
+            typeof sat.orbit[sat.orbit.length - 1].z === 'number'
+          ) {
+            const last = sat.orbit[sat.orbit.length - 1];
+            viewer.entities.add({
+              name: sat.id + " Benchmark",
+              position: Cesium.Cartesian3.fromElements(
+                last.x,
+                last.y,
+                last.z
+              ),
+              point: {
+                pixelSize: 10,
+                color: Cesium.Color.BLUE
+              },
+              label: {
+                text: sat.id + " Real",
+                font: '12px sans-serif',
+                fillColor: Cesium.Color.SKYBLUE,
+                verticalOrigin: Cesium.VerticalOrigin.TOP,
+                pixelOffset: new Cesium.Cartesian2(0, 15)
+              }
+            });
           }
         });
 

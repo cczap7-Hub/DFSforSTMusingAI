@@ -1,0 +1,10 @@
+orbit_sequence = [
+    {"x": float(x)*1000, "y": float(y)*1000, "z": float(z)*1000}
+    for x, y, z in benchmark_positions[idx]
+]
+...
+"predicted": {
+    "x": float(predictions[idx][0])*1000,
+    "y": float(predictions[idx][1])*1000,
+    "z": float(predictions[idx][2])*1000
+}
