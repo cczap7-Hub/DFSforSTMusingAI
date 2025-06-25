@@ -2,75 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Orbital Plane Visualization</title>
-  <script src="https://unpkg.com/cesium@latest/Build/Cesium/Cesium.js"></script>
-  <link href="https://unpkg.com/cesium@latest/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <title>Orbital + NEO Visualization</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/cesium@1.115/Build/Cesium/Widgets/widgets.css"
+    rel="stylesheet"
+  />
   <style>
     html, body, #cesiumContainer {
-      width: 100%;
-      height: 100%;
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
   </style>
 </head>
 <body>
+  <div id="controls" style="position:absolute;top:10px;left:10px;z-index:1000;">
+    <!-- Dropdown for quick camera jump -->
+    <select id="entitySelect" onchange="flyToSelectedEntity()">
+      <option value="home">Home</option>
+      <option value="neo_2025DZ4">NEO 2025 DZ4</option>
+      <option value="Satellite 1">Satellite 1</option>
+      <!-- ... -->
+    </select>
+    <button onclick="flyHome()">Home</button>
+    <button onclick="flyToNEO()">NEO</button>
+    <button onclick="flyToSatellite('Satellite 1')">Satellite 1</button>
+    <button onclick="flyToSatellite('Satellite 2')">Satellite 2</button>
+  </div>
   <div id="cesiumContainer"></div>
 
-  <script type="module">
-    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxMDEwNWM5NS1iZjM3LTRmNTAtOGRkZi1hODhhZjZkY2U3NTYiLCJpZCI6Mjk3NTUzLCJpYXQiOjE3NDYwNTI5MTV9.qyR5tMw8Et9vEWJXd9XdKD1BjUNWLlxPPWOxvDe9xQ8'; // 
+  <!-- ✅ Global version of Cesium (not module) -->
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.115/Build/Cesium/Cesium.js"></script>
+  <script>
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxMDEwNWM5NS1iZjM3LTRmNTAtOGRkZi1hODhhZjZkY2U3NTYiLCJpZCI6Mjk3NTUzLCJpYXQiOjE3NDYwNTI5MTV9.qyR5tMw8Et9vEWJXd9XdKD1BjUNWLlxPPWOxvDe9xQ8';
 
     async function initCesium() {
-      const viewer = new Cesium.Viewer('cesiumContainer', {
+      const viewer = new Cesium.Viewer("cesiumContainer", {
         terrainProvider: await Cesium.createWorldTerrainAsync(),
-        shouldAnimate: true
+        timeline: true,
+        animation: true,
+        baseLayerPicker: true,
+        sceneModePicker: true,
+        fullscreenButton: true,
+        infoBox: false,
+        selectionIndicator: false,
+        shadows: true,
+        shouldAnimate: true,
       });
 
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(-95.0, 40.0, 20000000)
+        destination: Cesium.Cartesian3.fromDegrees(-95.0, 40.0, 20000000),
       });
 
+      // ─── Load Satellite Predictions ─────────────────────────────────────
       try {
-        const response = await fetch('predictions.json?nocache=' + new Date().getTime());
-        const satellites = await response.json();
-        console.log("Loaded satellites:", satellites.length);
+        const satResp = await fetch('predictions.json?nocache=' + Date.now());
+        const satellites = await satResp.json();
+        console.log('Loaded satellites:', satellites.length);
 
         satellites.forEach(sat => {
-          // Render orbit line
           if (Array.isArray(sat.orbit)) {
             const orbitPositions = sat.orbit.map(p =>
-              Cesium.Cartesian3.fromElements(p.x, p.y, p.z)
+              Cesium.Cartesian3.fromElements(p.x * 1000, p.y * 1000, p.z * 1000)
             );
-
             viewer.entities.add({
-              name: sat.id + " Orbit",
+              name: `${sat.id} Orbit`,
               polyline: {
                 positions: orbitPositions,
                 width: 2,
-                material: Cesium.Color.YELLOW.withAlpha(0.6),
+                material: Cesium.Color.YELLOW.withAlpha(0.6)
               }
             });
           }
 
-          // Render prediction point
-          if (
-            sat.predicted &&
-            typeof sat.predicted.x === 'number' &&
-            typeof sat.predicted.y === 'number' &&
-            typeof sat.predicted.z === 'number'
-          ) {
+          if (sat.predicted && typeof sat.predicted.x === 'number') {
             viewer.entities.add({
-              name: sat.id + " Predicted",
+              name: `${sat.id} Predicted`,
               position: Cesium.Cartesian3.fromElements(
-                sat.predicted.x,
-                sat.predicted.y,
-                sat.predicted.z
+                sat.predicted.x * 1000,
+                sat.predicted.y * 1000,
+                sat.predicted.z * 1000
               ),
-              point: {
-                pixelSize: 10,
-                color: Cesium.Color.RED
-              },
+              point: { pixelSize: 10, color: Cesium.Color.RED },
               label: {
                 text: sat.id,
                 font: '12px sans-serif',
@@ -81,28 +96,16 @@
             });
           }
 
-          // Render benchmark (real) point
-          if (
-            Array.isArray(sat.orbit) &&
-            sat.orbit.length > 0 &&
-            typeof sat.orbit[sat.orbit.length - 1].x === 'number' &&
-            typeof sat.orbit[sat.orbit.length - 1].y === 'number' &&
-            typeof sat.orbit[sat.orbit.length - 1].z === 'number'
-          ) {
+          if (Array.isArray(sat.orbit) && sat.orbit.length > 0) {
             const last = sat.orbit[sat.orbit.length - 1];
             viewer.entities.add({
-              name: sat.id + " Benchmark",
+              name: `${sat.id} Real`,
               position: Cesium.Cartesian3.fromElements(
-                last.x,
-                last.y,
-                last.z
+                last.x * 1000, last.y * 1000, last.z * 1000
               ),
-              point: {
-                pixelSize: 10,
-                color: Cesium.Color.BLUE
-              },
+              point: { pixelSize: 10, color: Cesium.Color.BLUE },
               label: {
-                text: sat.id + " Real",
+                text: `${sat.id} Real`,
                 font: '12px sans-serif',
                 fillColor: Cesium.Color.SKYBLUE,
                 verticalOrigin: Cesium.VerticalOrigin.TOP,
@@ -111,19 +114,46 @@
             });
           }
         });
+      } catch (e) {
+        console.error("Failed to load satellites:", e);
+      }
 
-      } catch (error) {
-        console.error("Failed to load orbital data:", error);
+      // ─── Load NEOs from CZML ───────────────────────────────────────────
+      try {
+        const czml = await Cesium.CzmlDataSource.load('neos.czml?nocache=' + Date.now());
+        viewer.dataSources.add(czml);
+        console.log("✅ Loaded NEOs into Cesium.");
+      } catch (e) {
+        console.error("❌ Failed to load NEO data:", e);
       }
     }
+    // camera controls
+  function flyHome() {
+      viewer.camera.flyHome(1.5); // 1.5 seconds
+  }
 
+  function flyToNEO() {
+      var neoEntity = viewer.entities.getById('neo_2025DZ4'); // Use your NEO's actual ID
+      if (neoEntity) viewer.flyTo(neoEntity);
+  }
+
+  function flyToSatellite(satId) {
+      var satEntity = viewer.entities.getById(satId); // Use your satellite's actual ID
+      if (satEntity) viewer.flyTo(satEntity);
+  }
+  function flyToSelectedEntity() {
+      var id = document.getElementById('entitySelect').value;
+      if (id === 'home') {
+          viewer.camera.flyHome(1.5);
+      } else if (id.startsWith('neo_')) {
+          var entity = viewer.entities.getById(id);
+          if (entity) viewer.flyTo(entity);
+      } else {
+          var entity = viewer.entities.getById(id);
+          if (entity) viewer.flyTo(entity);
+      }
+  }
     initCesium();
   </script>
 </body>
 </html>
-
-
-
-
-
-

@@ -4,11 +4,15 @@ import numpy as np
 from xgboost import XGBRegressor
 from sklearn.preprocessing import MinMaxScaler
 from training import read_tles_from_file, generate_sequences_from_tles
+from training import auto_generate_flyby_neo_czml
+
+# Generate a random NEO flyby CZML file for Cesium
+auto_generate_flyby_neo_czml()
 
 def main():
-    # 1) load the same sequences you used for LSTM/GRU
+    # 1) load the same sequences used for LSTM/GRU
     tles = read_tles_from_file("gp.txt", num_samples=20000)
-    seqs = generate_sequences_from_tles(tles, num_points=30, step_sec=20)
+    seqs = generate_sequences_from_tles(tles, num_points=30, step_sec=10)
 
     # 2) flatten & scale
     N, T, F = seqs.shape
@@ -25,7 +29,7 @@ def main():
     xgb = XGBRegressor(n_estimators=200, max_depth=6, learning_rate=0.1)
     xgb.fit(X_flat, y)
 
-    # 5) save model + scaler under the exact names your loader expects
+    # 5) save model + scaler under the exact names as loader expects
     joblib.dump(xgb, "xgb_xgb_model.joblib")
     joblib.dump(scaler, "xgb_scaler.pkl")
     print("✅ Trained and saved XGBoost model.")
