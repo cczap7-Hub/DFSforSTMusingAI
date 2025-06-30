@@ -15,12 +15,14 @@ import requests
 import random
 from datetime import datetime, timezone
 from sklearn.preprocessing import MinMaxScaler
+import tracemalloc # For memory profiling
 
+tracemalloc.start()  # Start memory profiling
 
 # Download TLEs
 def download_tles(
     url: str = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle",
-    num_samples: int = 10000
+    num_samples: int = 1000
 ):
     lines = requests.get(url).text.strip().splitlines()
     tles = []
@@ -36,7 +38,7 @@ def download_tles(
 # Generate position/velocity/eccentricity sequences
 def generate_sequences_from_tles(
     tles,
-    num_points: int = 30,
+    num_points: int = 40,
     step_sec: int = 10
 ):
     sequences = []
@@ -455,3 +457,12 @@ def write_flyby_neo_czml(neo_name, times_jd, positions_km, filename="neos.czml")
     with open(filename, "w") as f:
         json.dump(czml, f, indent=2)
     print(f"Wrote flyby NEO {neo_name} to {filename}")
+
+current, peak = tracemalloc.get_traced_memory()  # Get current and peak memory usage
+    
+print("\nMemory usage summary:")
+print(f"  Current memory usage: {current / (10**6):.2f} MB")
+print(f"  Peak memory usage: {peak / (10**6):.2f} MB")
+tracemalloc.stop()  # Stop memory profiling
+
+
